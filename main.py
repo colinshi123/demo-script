@@ -21,7 +21,8 @@ config.read(f"{DIRPATH}/config.ini")
 
 # Let's use Amazon S3
 # cf = boto3.client('cloudfront')
-
+# iam = boto3.resource('iam')
+# server_certificate = iam.ServerCertificate('name')
 
 # Print out bucket names
 # print(cf.get_app())
@@ -86,31 +87,27 @@ import socket
 
 # 上传证书至AWS_CDN
 def post_aws_cdn_cert(domain):
-    client = boto3.client('acm', region_name="cn-northwest-1")
-    CertificateSummaryList = client.list_certificates(Includes={
-        "keyTypes": ['RSA_1024', 'RSA_2048', 'RSA_3072', 'RSA_4096', 'EC_prime256v1', 'EC_secp384r1', 'EC_secp521r1']})
-    for i in CertificateSummaryList["CertificateSummaryList"]:
-        print(i)
-        if domain != i.get('DomainName'):
-            print('证书不一致')
-            continue
-        res = client.describe_certificate(CertificateArn=i['CertificateArn'])
-        print(res)
-        with open('/Users/huiqingshi/test/cfssl/ca.pem', 'r') as f:
-            ca = f.read()
-        with open('/Users/huiqingshi/test/cfssl/ca-key.pem', 'r') as f:
-            ca_key = f.read()
-        r = client.import_certificate(CertificateArn=i['CertificateArn'],
-                                      Certificate=ca,
-                                      PrivateKey=ca_key)
-    return
+    client = boto3.client('iam', region_name="cn-northwest-1")
+    with open('/opt/cert/tls.crt', 'r') as f:
+        ca = f.read()
+    with open('/opt/cert/tls.key', 'r') as f:
+        ca_key = f.read()
+    date = datetime.datetime.now().strftime("%Y-%m-%d")
+    response = client.upload_server_certificate(
+        CertificateBody=ca,
+        Path='/cloudfront/mmota-cdn/',
+        PrivateKey=ca_key,
+        ServerCertificateName='mmota-cdn-aws-cn-staging-' + date,
+    )
+    return response
 
 
 # import urllib3
 #
 # urllib3.disable_warnings()
 exp_day = int(config.get('base', 'expiryday'))
-domains = ["mmota-cdn.p1.tmc79.cn", "mmota-cdn.p0.tmc79.cn", "mmota-cdn.beta.tmc79.cn"]
+# domains = ["mmota-cdn.p1.tmc79.cn", "mmota-cdn.p0.tmc79.cn", "mmota-cdn.beta.tmc79.cn"]
+domains = ["mmota-cdn.beta.tmc79.cn"]
 for domain in domains:
     print(domain)
     cert_expiry = get_cert_shell(domain)
@@ -120,7 +117,7 @@ for domain in domains:
     if (cert_expiry - datetime.datetime.now()).days < exp_day:
         print(f'将在{exp_day}天内过期，证书进行更换')
         print(f'开始更新{domain}域名证书')
-        #post_aws_cdn_cert(domain)
+        # post_aws_cdn_cert(domain)
     else:
         print(f'证书无需更换')
 
