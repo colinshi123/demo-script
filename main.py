@@ -117,7 +117,7 @@ for domain in domains:
     if (cert_expiry - datetime.datetime.now()).days < exp_day:
         print(f'将在{exp_day}天内过期，证书进行更换')
         print(f'开始更新{domain}域名证书')
-        # post_aws_cdn_cert(domain)
+        post_aws_cdn_cert(domain)
     else:
         print(f'证书无需更换')
 
