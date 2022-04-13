@@ -119,7 +119,7 @@ for domain in domains:
         print(f'开始更新{domain}域名证书')
         post_aws_cdn_cert(domain)
     else:
-        print(f'证书无需更换')
+        print('证书无需更换')
 
 """
 那些域名需要监控,有可以测试的域名吗？
